@@ -1,6 +1,6 @@
 # DevSecOps Cloud Resume Challenge - AWS
 
-[![Jira Status](https://img.shields.io/badge/Jira-Project_In_Progress-blue?logo=jira)]([JIRA Kanban](https://adouglass836.atlassian.net/jira/software/c/projects/AD/boards/2)
+[![Jira Status](https://img.shields.io/badge/Jira-Project_In_Progress-blue?logo=jira)](https://adouglass836.atlassian.net/jira/software/c/projects/AD/boards/2)
 [![Security Scan](https://img.shields.io/badge/DevSecOps-Snyk_Passed-green?logo=snyk)](YOUR_SNYK_LINK)
 [![CI/CD](https://img.shields.io/badge/Pipeline-Harness.io-orange?logo=harness)](YOUR_HARNESS_LINK)
 
