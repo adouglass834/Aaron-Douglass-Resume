@@ -1,0 +1,29 @@
+# --- OS Metadata ---
+.DS_Store
+Thumbs.db
+
+# --- Secrets & Environment Variables (CRITICAL) ---
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.tfvars
+terraform.tfstate*
+
+# --- IDE & AI Tool Clutter ---
+.vscode/
+.idea/
+.windsurf/
+.cursor/
+
+# --- Dependency Folders ---
+node_modules/
+dist/
+build/
+.next/
+
+# --- IaC & Pipeline Clutter ---
+.terraform/
+*.log
+.harness/*.log
