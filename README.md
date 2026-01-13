@@ -18,7 +18,7 @@ This project is a modernized version of the Cloud Resume Challenge, re-engineere
 ### Phase 1: Planning & Agile Setup (Current)
 - [x] Initialized Jira Scrum Board and Backlog.
 - [x] Established GitHub/Jira Integration for Smart Commits.
-- [ ] Technical Design Document (TDD) in Notion.
+- [x] Technical Design Document (TDD) in [Notion](https://www.notion.so/Cloud-Resume-Challenge-2e6e222eb1a680c089fcd14b0afc4cef?source=copy_link). 
 
 ### Phase 2: AI-Augmented Frontend
 - [ ] Component development using Windsurf/Cursor.
