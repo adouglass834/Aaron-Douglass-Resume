@@ -1,6 +1,6 @@
-# Modern DevSecOps Cloud Resume Challenge (AWS + Harness.io)
+# DevSecOps Cloud Resume Challenge - AWS
 
-[![Jira Status](https://img.shields.io/badge/Jira-Project_In_Progress-blue?logo=jira)](YOUR_JIRA_LINK)
+[![Jira Status](https://img.shields.io/badge/Jira-Project_In_Progress-blue?logo=jira)]([JIRA Kanban](https://adouglass836.atlassian.net/jira/software/c/projects/AD/boards/2)
 [![Security Scan](https://img.shields.io/badge/DevSecOps-Snyk_Passed-green?logo=snyk)](YOUR_SNYK_LINK)
 [![CI/CD](https://img.shields.io/badge/Pipeline-Harness.io-orange?logo=harness)](YOUR_HARNESS_LINK)
 
@@ -18,7 +18,7 @@ This project is a modernized version of the Cloud Resume Challenge, re-engineere
 ### Phase 1: Planning & Agile Setup (Current)
 - [x] Initialized Jira Scrum Board and Backlog.
 - [x] Established GitHub/Jira Integration for Smart Commits.
-- [x] Technical Design Document (TDD) in [Notion](https://www.notion.so/Cloud-Resume-Challenge-2e6e222eb1a680c089fcd14b0afc4cef?source=copy_link). 
+- [x] Technical Design Document (TDD) in [Notion](https://www.notion.so/Cloud-Resume-Challenge-2e7e222eb1a680d091d2d729f4042ac7?source=copy_link). 
 
 ### Phase 2: AI-Augmented Frontend
 - [ ] Component development using Windsurf/Cursor.
