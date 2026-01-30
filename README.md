@@ -1,4 +1,4 @@
-# AWS Cloud Resume Challenge
+# AWS Cloud Resume - AaronDouglass.com
 
 A deployment-ready static website and AWS Infrastructure as Code (Terraform) for the AWS Cloud Resume Challenge.
 
