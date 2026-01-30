@@ -1,0 +1,137 @@
+/* Mobile-first responsive design */
+
+/* Small screens (mobile phones) */
+@media (max-width: 480px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        padding: 1.5rem;
+        border-right: none;
+        border-bottom: 2px solid var(--accent-primary);
+    }
+    
+    .profile-image {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .profile h1 {
+        font-size: 1.5rem;
+    }
+    
+    .profile h2 {
+        font-size: 1rem;
+    }
+    
+    .content {
+        padding: 1rem;
+    }
+    
+    .summary h2, .experience h2, .projects h2 {
+        font-size: 1.5rem;
+    }
+    
+    .job {
+        padding: 1rem;
+    }
+    
+    .job h3 {
+        font-size: 1.2rem;
+    }
+    
+    .project {
+        padding: 1rem;
+    }
+    
+    .project h3 {
+        font-size: 1.2rem;
+    }
+}
+
+/* Medium screens (tablets) */
+@media (min-width: 481px) and (max-width: 768px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        padding: 1.8rem;
+        border-right: none;
+        border-bottom: 2px solid var(--accent-primary);
+    }
+    
+    .profile-image {
+        width: 140px;
+        height: 140px;
+    }
+    
+    .content {
+        padding: 1.5rem 2rem;
+    }
+    
+    .summary h2, .experience h2, .projects h2 {
+        font-size: 1.7rem;
+    }
+}
+
+/* Large screens (desktops) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .container {
+        grid-template-columns: 300px 1fr;
+    }
+    
+    .sidebar {
+        padding: 1.8rem;
+    }
+    
+    .profile-image {
+        width: 130px;
+        height: 130px;
+    }
+    
+    .content {
+        padding: 1.8rem 2.5rem;
+    }
+}
+
+/* Extra large screens */
+@media (min-width: 1025px) {
+    .container {
+        grid-template-columns: 350px 1fr;
+    }
+    
+    .content {
+        padding: 2rem 3rem;
+    }
+}
+
+/* Print styles */
+@media print {
+    body {
+        background-color: white;
+        color: black;
+    }
+    
+    .container {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        border-right: none;
+        border-bottom: 2px solid #333;
+    }
+    
+    :root {
+        --bg-primary: white;
+        --bg-secondary: #f5f5f5;
+        --accent-primary: #333;
+        --accent-secondary: #666;
+        --text-main: black;
+    }
+    
+    .visitor-counter {
+        display: none;
+    }
+}

@@ -1,0 +1,230 @@
+:root {
+    --bg-primary: #040404;
+    --bg-secondary: #13505b;
+    --accent-primary: #119da4;
+    --accent-secondary: #0c7489;
+    --text-main: #d7d9ce;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-main);
+    line-height: 1.6;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    min-height: 100vh;
+    gap: 0;
+}
+
+.sidebar {
+    background-color: var(--bg-secondary);
+    padding: 2rem;
+    border-right: 2px solid var(--accent-primary);
+}
+
+.profile {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.profile-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-primary);
+    margin-bottom: 1rem;
+    object-fit: cover;
+}
+
+.profile h1 {
+    color: var(--accent-primary);
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.profile h2 {
+    color: var(--text-main);
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+}
+
+.profile p {
+    color: var(--text-main);
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+.contact, .education, .certifications {
+    margin-bottom: 2rem;
+}
+
+.contact h3, .education h3, .certifications h3 {
+    color: var(--accent-primary);
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid var(--accent-secondary);
+    padding-bottom: 0.5rem;
+}
+
+.visitor-counter {
+    background-color: rgba(17, 157, 164, 0.1);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--accent-primary);
+}
+
+.visitor-counter p {
+    font-size: 0.9rem;
+}
+
+#visitor-count {
+    color: var(--accent-primary);
+    font-weight: bold;
+}
+
+.education-item {
+    margin-bottom: 1rem;
+}
+
+.education-item h4 {
+    color: var(--text-main);
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+}
+
+.education-item p {
+    color: var(--text-main);
+    opacity: 0.8;
+    font-size: 0.9rem;
+}
+
+.education-item .date {
+    font-style: italic;
+}
+
+.certifications ul {
+    list-style: none;
+}
+
+.certifications li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(17, 157, 164, 0.2);
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.certifications li:before {
+    content: "🔒";
+    position: absolute;
+    left: 0;
+}
+
+.content {
+    padding: 2rem 3rem;
+    overflow-y: auto;
+}
+
+.summary, .experience, .projects {
+    margin-bottom: 3rem;
+}
+
+.summary h2, .experience h2, .projects h2 {
+    color: var(--accent-primary);
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    border-bottom: 3px solid var(--accent-secondary);
+    padding-bottom: 0.5rem;
+}
+
+.summary p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    opacity: 0.9;
+}
+
+.job {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: rgba(19, 80, 91, 0.3);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-primary);
+}
+
+.job header {
+    margin-bottom: 1rem;
+}
+
+.job h3 {
+    color: var(--accent-primary);
+    font-size: 1.4rem;
+    margin-bottom: 0.3rem;
+}
+
+.job .date {
+    color: var(--text-main);
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.job ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.job li {
+    padding: 0.5rem 0;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.job li:before {
+    content: "▸";
+    color: var(--accent-secondary);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+.project {
+    padding: 1.5rem;
+    background-color: rgba(19, 80, 91, 0.3);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-secondary);
+}
+
+.project h3 {
+    color: var(--accent-primary);
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.project p {
+    opacity: 0.9;
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        border-right: none;
+        border-bottom: 2px solid var(--accent-primary);
+    }
+    
+    .content {
+        padding: 1.5rem;
+    }
+}

@@ -1,0 +1,11 @@
+# .gitignore
+
+# Terraform files to ignore
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.env
+
+# Mac system files
+.DS_Store
