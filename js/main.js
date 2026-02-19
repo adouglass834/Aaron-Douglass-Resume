@@ -92,7 +92,22 @@ function collectTelemetry() {
 
 // Generate a unique session ID
 function generateSessionId() {
-    const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    // Use cryptographically secure randomness where available
+    let randomPart;
+    if (window.crypto && window.crypto.getRandomValues) {
+        const randomBytes = new Uint8Array(8); // 64 bits of randomness
+        window.crypto.getRandomValues(randomBytes);
+        // Convert bytes to a base-36 string similar in length to the old suffix
+        let num = 0n;
+        for (let i = 0; i < randomBytes.length; i++) {
+            num = (num << 8n) | BigInt(randomBytes[i]);
+        }
+        randomPart = num.toString(36).substr(0, 9);
+    } else {
+        // Fallback for very old browsers: retain previous behavior
+        randomPart = Math.random().toString(36).substr(2, 9);
+    }
+    const sessionId = 'session_' + Date.now() + '_' + randomPart;
     sessionStorage.setItem('sessionId', sessionId);
     return sessionId;
 }
