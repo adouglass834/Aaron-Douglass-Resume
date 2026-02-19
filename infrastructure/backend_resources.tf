@@ -21,13 +21,16 @@ resource "aws_s3_bucket_public_access_block" "state_access" {
   restrict_public_buckets = true
 }
 
-# Lifecycle rule to clean up incomplete uploads
 resource "aws_s3_bucket_lifecycle_configuration" "state_lifecycle" {
   bucket = aws_s3_bucket.terraform_state.id
 
   rule {
     id     = "abort-incomplete-uploads"
     status = "Enabled"
+    
+    # ADD THIS BLOCK:
+    filter {} 
+    
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
     }

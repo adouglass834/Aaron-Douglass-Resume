@@ -40,8 +40,6 @@ resource "aws_lambda_function" "visitor_counter" {
   runtime          = "python3.12"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
-  # FIX: Limit concurrency to prevent billing runaways (CKV_AWS_115)
-  reserved_concurrent_executions = 100
 
   # FIX: Enable X-Ray Tracing (CKV_AWS_50)
   tracing_config {

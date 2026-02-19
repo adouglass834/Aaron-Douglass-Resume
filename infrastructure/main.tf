@@ -53,6 +53,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "website_lifecycle" {
   rule {
     id     = "abort-incomplete-uploads"
     status = "Enabled"
+    
+    # ADD THIS BLOCK:
+    filter {}
+
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
     }
