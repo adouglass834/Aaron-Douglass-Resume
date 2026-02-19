@@ -1,11 +1,37 @@
 # .gitignore
 
-# Terraform files to ignore
+# --- Terraform / OpenTofu ---
 .terraform/
 *.tfstate
 *.tfstate.backup
 *.tfvars
-.env
+*.tfvars.json
 
-# Mac system files
+# Ignore terraform.tfvars as it often contains sensitive input variables
+terraform.tfvars
+terraform.tfvars.json
+
+# Ignore variables that might be generated for a specific workspace
+*.tfplan
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
+
+# --- Security & Environment ---
+.env
+.env.*
+# Ignore specific AWS/Cloud provider credentials if they exist locally
+.aws/
+credentials
+access_keys.csv
+
+# --- System & IDE ---
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
