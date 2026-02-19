@@ -94,6 +94,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   origin {
     domain_name = aws_s3_bucket.website_bucket.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.website_bucket.bucket}"
+    origin_access_control_id = aws_cloudfront_origin_access_control.oac.id
   }
 
   enabled             = true
@@ -128,6 +129,15 @@ resource "aws_cloudfront_distribution" "cdn" {
     cloudfront_default_certificate = true
   }
 }
+
+resource "aws_cloudfront_origin_access_control" "oac" {
+  name                              = "cloudfront-oac"
+  description                       = "OAC for resume website"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 
 # S3 Bucket policy to allow CloudFront access
 resource "aws_s3_bucket_policy" "bucket_policy" {
