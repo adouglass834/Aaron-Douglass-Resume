@@ -164,6 +164,9 @@ resource "aws_apigatewayv2_route" "default_route" {
   api_id    = aws_apigatewayv2_api.visitor_api.id
   route_key = "GET /visitor-count"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+  
+  # ADD THIS LINE: Explicitly tell AWS this is a public API
+  authorization_type = "NONE"
 }
 
 resource "aws_lambda_permission" "api_gateway" {
