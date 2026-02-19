@@ -1,22 +1,17 @@
 # S3 Bucket for State Storage
+# checkov:skip=CKV_AWS_144: "CRR not required for personal resume state"
+# checkov:skip=CKV_AWS_18: "Access logging not required for state bucket"
+# checkov:skip=CKV_AWS_145: "Using default AES256 encryption to save costs"
+# checkov:skip=CKV2_AWS_62: "Notifications not needed for state file"
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "aaron-douglass-terraform-state" 
   
   lifecycle {
     prevent_destroy = true 
   }
-
-  # SKIP: Cross-region replication doubles storage costs (CKV_AWS_144)
-  # checkov:skip=CKV_AWS_144: "CRR not required for personal resume state"
-  
-  # SKIP: Access logging creates log spam and costs storage (CKV_AWS_18)
-  # checkov:skip=CKV_AWS_18: "Access logging not required for state bucket"
-
-  # SKIP: KMS Customer Keys cost money (CKV_AWS_145)
-  # checkov:skip=CKV_AWS_145: "Using default AES256 encryption to save costs"
 }
 
-# FIX: Ensure State Bucket is not public (CKV2_AWS_6)
+# Ensure State Bucket is not public
 resource "aws_s3_bucket_public_access_block" "state_access" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -26,7 +21,7 @@ resource "aws_s3_bucket_public_access_block" "state_access" {
   restrict_public_buckets = true
 }
 
-# FIX: Add Lifecycle rule to clean up incomplete uploads (CKV2_AWS_61)
+# Lifecycle rule to clean up incomplete uploads
 resource "aws_s3_bucket_lifecycle_configuration" "state_lifecycle" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -37,9 +32,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "state_lifecycle" {
       days_after_initiation = 7
     }
   }
-  
-  # SKIP: Event notifications not needed for state (CKV2_AWS_62)
-  # checkov:skip=CKV2_AWS_62: "Notifications not needed for state file"
 }
 
 # Enable Versioning
@@ -61,6 +53,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
 }
 
 # DynamoDB for State Locking
+# checkov:skip=CKV_AWS_119: "Using default AWS owned key to save costs"
 resource "aws_dynamodb_table" "terraform_locks" {
   name         = "terraform-state-locking"
   billing_mode = "PAY_PER_REQUEST"
@@ -71,11 +64,7 @@ resource "aws_dynamodb_table" "terraform_locks" {
     type = "S"
   }
 
-  # FIX: Enable Backup (CKV_AWS_28)
   point_in_time_recovery {
     enabled = true
   }
-
-  # SKIP: KMS Customer Managed Keys cost $1/mo (CKV_AWS_119)
-  # checkov:skip=CKV_AWS_119: "Using default AWS owned key to save costs"
 }
