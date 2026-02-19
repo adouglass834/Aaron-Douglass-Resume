@@ -26,7 +26,7 @@ jobs:
           # MAGIC FIX: Set this to true so the pipeline DOES NOT stop on errors
           soft_fail: true 
 
-  # --- GATE 2: Infrastructure Deployment ---
+# --- GATE 2: Infrastructure Deployment ---
   deploy_infra:
     needs: security_audit
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -36,6 +36,13 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      # --- ADD THIS STEP HERE ---
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "latest"
+      # --------------------------
 
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -53,7 +60,6 @@ jobs:
         id: tf_out
         working-directory: ./infrastructure
         run: echo "api_endpoint=$(terraform output -raw api_endpoint)" >> $GITHUB_OUTPUT
-
   # --- GATE 3: Frontend Sync ---
   deploy_frontend:
     needs: deploy_infra
