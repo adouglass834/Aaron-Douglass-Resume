@@ -1,6 +1,18 @@
 # 1. DynamoDB Table (The Database)
-data "aws_kms_alias" "dynamodb" {
-  name = "alias/aws/dynamodb"
+resource "aws_kms_key" "dynamodb_key" {
+  description             = "KMS key for DynamoDB encryption"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
+
+  tags = {
+    Name        = "visitor-counter-dynamodb-key"
+    Environment = "production"
+  }
+}
+
+resource "aws_kms_alias" "dynamodb_key_alias" {
+  name          = "alias/visitor-counter-dynamodb"
+  target_key_id = aws_kms_key.dynamodb_key.key_id
 }
 
 data "aws_kms_alias" "lambda" {
@@ -32,10 +44,10 @@ resource "aws_dynamodb_table" "visitor_counter" {
     enabled = true
   }
 
-  # FIX: Use default AWS encryption (CKV_AWS_119)
+  # FIX: Use customer-managed KMS key (CKV_AWS_119)
   server_side_encryption {
-    enabled = true
-    kms_key_arn = data.aws_kms_alias.dynamodb.target_key_arn
+    enabled     = true
+    kms_key_arn = aws_kms_key.dynamodb_key.arn
   }
 }
 
@@ -99,6 +111,9 @@ resource "aws_lambda_function" "visitor_counter" {
   }
 
   code_signing_config_arn = aws_lambda_code_signing_config.visitor_counter.arn
+
+  # FIX: Set concurrent execution limit (CKV_AWS_115)
+  reserved_concurrent_executions = 10
 
   # SKIP: VPC requires NAT Gateway which costs ~$30/mo (CKV_AWS_117)
   # checkov:skip=CKV_AWS_117: "Skipping VPC to avoid NAT Gateway costs for free-tier project"
@@ -201,7 +216,7 @@ resource "aws_apigatewayv2_route" "default_route" {
   route_key = "GET /visitor-count"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
   
-  # ADD THIS LINE: Explicitly tell AWS this is a public API
+  # FIX: Explicitly set authorization to NONE for public API (CKV_AWS_309)
   authorization_type = "NONE"
 }
 

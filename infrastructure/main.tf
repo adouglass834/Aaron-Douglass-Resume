@@ -97,8 +97,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "website_logs_encr
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_key.arn
     }
+    bucket_key_enabled = true
   }
 }
 
@@ -148,8 +150,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "website_encryptio
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_key.arn
     }
+    bucket_key_enabled = true
   }
 }
 
@@ -200,11 +204,39 @@ resource "aws_cloudfront_origin_access_control" "website_oac" {
   signing_protocol                  = "sigv4"
 }
 
+# KMS keys for S3 buckets
+resource "aws_kms_key" "s3_key" {
+  description             = "KMS key for S3 bucket encryption"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
+
+  tags = {
+    Name        = "${var.domain_name}-s3-key"
+    Environment = var.environment
+  }
+}
+
+resource "aws_kms_alias" "s3_key_alias" {
+  name          = "alias/${var.domain_name}-s3"
+  target_key_id = aws_kms_key.s3_key.key_id
+}
+
 # CloudFront Distribution
 # checkov:skip=CKV_AWS_310: "Failover not required for simple resume"
 # checkov:skip=CKV2_AWS_42: "Using default CloudFront cert is acceptable for dev"
 data "aws_cloudfront_response_headers_policy" "managed_security_headers" {
   name = "Managed-SecurityHeadersPolicy"
+}
+
+# CloudWatch Log Group for WAF
+resource "aws_cloudwatch_log_group" "waf_logs" {
+  name              = "aws-waf-logs-${replace(var.domain_name, ".", "-")}"
+  retention_in_days = 90
+
+  tags = {
+    Name        = "${var.domain_name}-waf-logs"
+    Environment = var.environment
+  }
 }
 
 resource "aws_wafv2_web_acl" "cloudfront_waf" {
@@ -237,11 +269,38 @@ resource "aws_wafv2_web_acl" "cloudfront_waf" {
     }
   }
 
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 2
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "known-bad-inputs-rule-set"
+      sampled_requests_enabled   = true
+    }
+  }
+
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = "${replace(var.domain_name, ".", "-")}-waf"
     sampled_requests_enabled   = true
   }
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "cloudfront_waf_logging" {
+  resource_arn            = aws_wafv2_web_acl.cloudfront_waf.arn
+  log_destination_configs = [aws_cloudwatch_log_group.waf_logs.arn]
 }
 
 resource "aws_cloudfront_distribution" "cdn" {
