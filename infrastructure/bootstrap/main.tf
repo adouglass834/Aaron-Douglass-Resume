@@ -129,6 +129,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "state_lifecycle" {
 }
 
 resource "aws_dynamodb_table" "terraform_locks" {
+  # checkov:skip=CKV_AWS_119: DynamoDB lock table only stores Terraform state locks, not sensitive data
   name         = var.lock_table_name
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
