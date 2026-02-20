@@ -221,6 +221,13 @@ resource "aws_s3_bucket_versioning" "versioning" {
   }
 }
 
+resource "aws_s3_bucket_versioning" "logs_versioning" {
+  bucket = aws_s3_bucket.website_logs_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_cloudfront_origin_access_control" "website_oac" {
   name                              = "${var.domain_name}-oac"
   description                       = "OAC for ${var.domain_name} website bucket"
