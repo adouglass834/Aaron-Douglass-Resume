@@ -65,9 +65,9 @@ variable "acm_certificate_arn" {
 }
 
 # S3 Bucket for static website hosting
-# checkov:skip=CKV_AWS_144: "Cross-region replication not required for static resume site"
-# checkov:skip=CKV2_AWS_62: "Event notifications not needed for static site bucket"
 resource "aws_s3_bucket" "website_bucket" {
+  # checkov:skip=CKV_AWS_144: Cross-region replication not required for static resume site
+  # checkov:skip=CKV2_AWS_62: Event notifications not needed for static site bucket
   bucket = var.domain_name
   
   tags = {
@@ -77,10 +77,10 @@ resource "aws_s3_bucket" "website_bucket" {
   }
 }
 
-# checkov:skip=CKV_AWS_144: "Cross-region replication not required for logs bucket"
-# checkov:skip=CKV2_AWS_62: "Event notifications not needed for logs bucket"
-# checkov:skip=CKV_AWS_18: "Logging the logs bucket creates infinite recursion"
 resource "aws_s3_bucket" "website_logs_bucket" {
+  # checkov:skip=CKV_AWS_144: Cross-region replication not required for logs bucket
+  # checkov:skip=CKV2_AWS_62: Event notifications not needed for logs bucket
+  # checkov:skip=CKV_AWS_18: Logging the logs bucket creates infinite recursion
   bucket = "${var.domain_name}-logs"
 
   tags = {
@@ -108,6 +108,24 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "website_logs_encr
       kms_master_key_id = aws_kms_key.s3_key.arn
     }
     bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "website_logs_lifecycle" {
+  bucket = aws_s3_bucket.website_logs_bucket.id
+
+  rule {
+    id     = "expire-old-logs"
+    status = "Enabled"
+    filter {}
+
+    expiration {
+      days = 90
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
   }
 }
 
@@ -322,7 +340,6 @@ resource "aws_kms_alias" "s3_key_alias" {
 }
 
 # CloudFront Distribution
-# checkov:skip=CKV2_AWS_42: "Using default CloudFront cert is acceptable for dev; set acm_certificate_arn to use custom cert"
 data "aws_cloudfront_response_headers_policy" "managed_security_headers" {
   name = "Managed-SecurityHeadersPolicy"
 }
@@ -404,6 +421,7 @@ resource "aws_wafv2_web_acl_logging_configuration" "cloudfront_waf_logging" {
 }
 
 resource "aws_cloudfront_distribution" "cdn" {
+  # checkov:skip=CKV2_AWS_42: Using default CloudFront cert is acceptable for dev; set acm_certificate_arn to use custom cert
   aliases = var.alternate_domain_names
 
   # Primary origin: S3 via OAC
