@@ -1,8 +1,4 @@
 # 1. DynamoDB Table (The Database)
-data "aws_caller_identity" "current" {}
-
-data "aws_region" "current" {}
-
 resource "aws_kms_key" "dynamodb_key" {
   description             = "KMS key for DynamoDB encryption"
   deletion_window_in_days = 10

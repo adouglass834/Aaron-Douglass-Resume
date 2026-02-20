@@ -76,6 +76,9 @@ resource "aws_kms_alias" "terraform_state_key_alias" {
   target_key_id = aws_kms_key.terraform_state_key.key_id
 }
 
+# checkov:skip=CKV_AWS_144: \"Cross-region replication not required for state bucket\"
+# checkov:skip=CKV2_AWS_62: \"Event notifications not needed for state bucket\"
+# checkov:skip=CKV_AWS_18: \"Access logging not required for state bucket with versioning enabled\"
 resource "aws_s3_bucket" "terraform_state" {
   bucket = var.state_bucket_name
 

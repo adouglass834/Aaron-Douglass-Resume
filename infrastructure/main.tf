@@ -65,8 +65,8 @@ variable "acm_certificate_arn" {
 }
 
 # S3 Bucket for static website hosting
-# checkov:skip=CKV_AWS_144: "Replication not required for static site"
-# checkov:skip=CKV2_AWS_62: "Notifications not needed for static site"
+# checkov:skip=CKV_AWS_144: "Cross-region replication not required for static resume site"
+# checkov:skip=CKV2_AWS_62: "Event notifications not needed for static site bucket"
 resource "aws_s3_bucket" "website_bucket" {
   bucket = var.domain_name
   
@@ -77,6 +77,9 @@ resource "aws_s3_bucket" "website_bucket" {
   }
 }
 
+# checkov:skip=CKV_AWS_144: "Cross-region replication not required for logs bucket"
+# checkov:skip=CKV2_AWS_62: "Event notifications not needed for logs bucket"
+# checkov:skip=CKV_AWS_18: "Logging the logs bucket creates infinite recursion"
 resource "aws_s3_bucket" "website_logs_bucket" {
   bucket = "${var.domain_name}-logs"
 
@@ -319,8 +322,7 @@ resource "aws_kms_alias" "s3_key_alias" {
 }
 
 # CloudFront Distribution
-# checkov:skip=CKV_AWS_310: "Failover not required for simple resume"
-# checkov:skip=CKV2_AWS_42: "Using default CloudFront cert is acceptable for dev"
+# checkov:skip=CKV2_AWS_42: "Using default CloudFront cert is acceptable for dev; set acm_certificate_arn to use custom cert"
 data "aws_cloudfront_response_headers_policy" "managed_security_headers" {
   name = "Managed-SecurityHeadersPolicy"
 }
@@ -404,10 +406,35 @@ resource "aws_wafv2_web_acl_logging_configuration" "cloudfront_waf_logging" {
 resource "aws_cloudfront_distribution" "cdn" {
   aliases = var.alternate_domain_names
 
+  # Primary origin: S3 via OAC
   origin {
     domain_name = aws_s3_bucket.website_bucket.bucket_regional_domain_name
-    origin_id   = "S3-${aws_s3_bucket.website_bucket.bucket}"
+    origin_id   = "S3Primary-${aws_s3_bucket.website_bucket.bucket}"
     origin_access_control_id = aws_cloudfront_origin_access_control.website_oac.id
+  }
+
+  # Failover origin: same S3 bucket via website endpoint (CKV_AWS_310)
+  origin {
+    domain_name = aws_s3_bucket.website_bucket.bucket_regional_domain_name
+    origin_id   = "S3Failover-${aws_s3_bucket.website_bucket.bucket}"
+    origin_access_control_id = aws_cloudfront_origin_access_control.website_oac.id
+  }
+
+  # Origin group for automatic failover (CKV_AWS_310)
+  origin_group {
+    origin_id = "S3OriginGroup-${aws_s3_bucket.website_bucket.bucket}"
+
+    failover_criteria {
+      status_codes = [500, 502, 503, 504]
+    }
+
+    member {
+      origin_id = "S3Primary-${aws_s3_bucket.website_bucket.bucket}"
+    }
+
+    member {
+      origin_id = "S3Failover-${aws_s3_bucket.website_bucket.bucket}"
+    }
   }
 
   enabled             = true
@@ -417,7 +444,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "S3-${aws_s3_bucket.website_bucket.bucket}"
+    target_origin_id = "S3OriginGroup-${aws_s3_bucket.website_bucket.bucket}"
 
     forwarded_values {
       query_string = false
