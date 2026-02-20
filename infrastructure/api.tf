@@ -1,8 +1,45 @@
 # 1. DynamoDB Table (The Database)
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
 resource "aws_kms_key" "dynamodb_key" {
   description             = "KMS key for DynamoDB encryption"
   deletion_window_in_days = 10
   enable_key_rotation     = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow DynamoDB to use the key"
+        Effect = "Allow"
+        Principal = {
+          Service = "dynamodb.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:CreateGrant"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = "dynamodb.${data.aws_region.current.name}.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
 
   tags = {
     Name        = "visitor-counter-dynamodb-key"
@@ -177,7 +214,7 @@ resource "aws_cloudwatch_log_group" "api_gw" {
   name = "/aws/api_gateway/${aws_apigatewayv2_api.visitor_api.name}"
 
   retention_in_days = 365
-  kms_key_id        = data.aws_kms_alias.logs.target_key_arn
+  kms_key_id        = aws_kms_key.cloudwatch_logs_key.arn
 }
 
 resource "aws_apigatewayv2_stage" "prod" {
