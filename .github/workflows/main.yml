@@ -10,6 +10,9 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: us-east-1
+
 jobs:
   # --- GATE 1: Security Scanning ---
   security_audit:
@@ -19,20 +22,77 @@ jobs:
         uses: actions/checkout@v4
 
       - name: IaC Security Scan (Checkov)
-        uses: bridgecrewio/checkov-action@master
+        uses: bridgecrewio/checkov-action@v12
         with:
           directory: infrastructure/
           framework: terraform
-          # MAGIC FIX: Set this to true so the pipeline DOES NOT stop on errors
-          soft_fail: true 
+          soft_fail: false
 
-# --- GATE 2: Infrastructure Deployment ---
-  deploy_infra:
+  # --- GATE 2: Terraform Validation ---
+  validate_terraform:
     needs: security_audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Validate (Bootstrap)
+        working-directory: ./infrastructure/bootstrap
+        run: |
+          terraform init -input=false
+          terraform validate
+
+      - name: Terraform Validate (Infrastructure)
+        working-directory: ./infrastructure
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+  # --- GATE 3: Backend Bootstrap ---
+  bootstrap_backend:
+    needs: validate_terraform
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init & Apply (Bootstrap)
+        working-directory: ./infrastructure/bootstrap
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false
+
+  # --- GATE 4: Infrastructure Deployment ---
+  deploy_infra:
+    needs: bootstrap_backend
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       api_endpoint: ${{ steps.tf_out.outputs.api_endpoint }}
+      cloudfront_distribution_id: ${{ steps.tf_out.outputs.cloudfront_distribution_id }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -41,26 +101,30 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "latest"
+          terraform_version: "1.7.5"
       # --------------------------
 
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::009245114403:role/admin_role
-          aws-region: us-east-1
+          # REQUIRED INPUT: Set GitHub Secret AWS_ROLE_TO_ASSUME to your deploy role ARN
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Terraform Init & Apply
         working-directory: ./infrastructure
         run: |
-          terraform init
-          terraform apply -auto-approve
+          terraform init -input=false
+          terraform validate
+          terraform apply -auto-approve -input=false
 
       - name: Get API URL Output
         id: tf_out
         working-directory: ./infrastructure
-        run: echo "api_endpoint=$(terraform output -raw api_endpoint)" >> $GITHUB_OUTPUT
-  # --- GATE 3: Frontend Sync ---
+        run: |
+          echo "api_endpoint=$(terraform output -raw api_endpoint)" >> $GITHUB_OUTPUT
+          echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
+  # --- GATE 5: Frontend Sync ---
   deploy_frontend:
     needs: deploy_infra
     runs-on: ubuntu-latest
@@ -71,8 +135,9 @@ jobs:
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::009245114403:role/admin_role
-          aws-region: us-east-1
+          # REQUIRED INPUT: Set GitHub Secret AWS_ROLE_TO_ASSUME to your deploy role ARN
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Inject API URL into JS
         run: |
@@ -82,11 +147,16 @@ jobs:
 
       - name: S3 Sync
         run: |
-          aws s3 sync . s3://aarondouglass.com --delete --exclude ".git/*" --exclude "infrastructure/*" --exclude ".github/*"
+          # REQUIRED INPUT: Set GitHub Repository Variable DEPLOY_BUCKET to your website bucket name
+          if [ -z "${{ vars.DEPLOY_BUCKET }}" ]; then
+            echo "Missing required repository variable: DEPLOY_BUCKET"
+            exit 1
+          fi
+          aws s3 sync . s3://${{ vars.DEPLOY_BUCKET }} --delete --exclude ".git/*" --exclude "infrastructure/*" --exclude ".github/*"
 
       - name: Invalidate CloudFront
         run: |
-          DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items!=null] | [?contains(Aliases.Items, 'aarondouglass.com')].Id" --output text)
+          DIST_ID="${{ needs.deploy_infra.outputs.cloudfront_distribution_id }}"
           if [ ! -z "$DIST_ID" ]; then
-            aws cloudfront create-invalidation --distribution-id $DIST_ID --paths "/*"
+            aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
           fi

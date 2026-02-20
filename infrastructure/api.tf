@@ -1,4 +1,22 @@
 # 1. DynamoDB Table (The Database)
+data "aws_kms_alias" "dynamodb" {
+  name = "alias/aws/dynamodb"
+}
+
+data "aws_kms_alias" "lambda" {
+  name = "alias/aws/lambda"
+}
+
+data "aws_kms_alias" "logs" {
+  name = "alias/aws/logs"
+}
+
+variable "allowed_cors_origin" {
+  description = "Allowed CORS origin for visitor API"
+  type        = string
+  default     = "https://example.com"
+}
+
 resource "aws_dynamodb_table" "visitor_counter" {
   name           = "visitor-counter-table"
   billing_mode   = "PAY_PER_REQUEST"
@@ -17,8 +35,30 @@ resource "aws_dynamodb_table" "visitor_counter" {
   # FIX: Use default AWS encryption (CKV_AWS_119)
   server_side_encryption {
     enabled = true
-    # We use the default AWS Owned Key (free) instead of a Customer Managed Key ($$)
-    # checkov:skip=CKV_AWS_119: "Using default AWS owned CMK to save costs for resume project"
+    kms_key_arn = data.aws_kms_alias.dynamodb.target_key_arn
+  }
+}
+
+resource "aws_sqs_queue" "lambda_dlq" {
+  name                      = "visitor-counter-dlq"
+  message_retention_seconds = 1209600
+  sqs_managed_sse_enabled   = true
+}
+
+resource "aws_signer_signing_profile" "lambda_signer" {
+  name_prefix = "visitor-counter-signer"
+  platform_id = "AWSLambda-SHA384-ECDSA"
+}
+
+resource "aws_lambda_code_signing_config" "visitor_counter" {
+  description = "Code signing config for visitor counter lambda"
+
+  allowed_publishers {
+    signing_profile_version_arns = [aws_signer_signing_profile.lambda_signer.version_arn]
+  }
+
+  policies {
+    untrusted_artifact_on_deployment = "Warn"
   }
 }
 
@@ -52,17 +92,16 @@ resource "aws_lambda_function" "visitor_counter" {
     }
   }
 
+  kms_key_arn = data.aws_kms_alias.lambda.target_key_arn
+
+  dead_letter_config {
+    target_arn = aws_sqs_queue.lambda_dlq.arn
+  }
+
+  code_signing_config_arn = aws_lambda_code_signing_config.visitor_counter.arn
+
   # SKIP: VPC requires NAT Gateway which costs ~$30/mo (CKV_AWS_117)
   # checkov:skip=CKV_AWS_117: "Skipping VPC to avoid NAT Gateway costs for free-tier project"
-
-  # SKIP: DLQ is overkill for synchronous API Gateway integration (CKV_AWS_116)
-  # checkov:skip=CKV_AWS_116: "DLQ not required for simple synchronous API invocation"
-
-  # SKIP: Code Signing is complex overkill for this project (CKV_AWS_272)
-  # checkov:skip=CKV_AWS_272: "Code signing is overkill for personal project"
-
-  # SKIP: KMS Customer keys cost money (CKV_AWS_173)
-  # checkov:skip=CKV_AWS_173: "Using default encryption to save costs"
 }
 
 # 4. IAM Role
@@ -112,7 +151,7 @@ resource "aws_apigatewayv2_api" "visitor_api" {
   name          = "visitor-counter-api"
   protocol_type = "HTTP"
   cors_configuration {
-    allow_origins = ["*"]
+    allow_origins = [var.allowed_cors_origin]
     allow_methods = ["GET"]
     allow_headers = ["Content-Type"]
   }
@@ -122,9 +161,8 @@ resource "aws_apigatewayv2_api" "visitor_api" {
 resource "aws_cloudwatch_log_group" "api_gw" {
   name = "/aws/api_gateway/${aws_apigatewayv2_api.visitor_api.name}"
 
-  retention_in_days = 7
-  # checkov:skip=CKV_AWS_338: "Retention of 7 days is sufficient for this project"
-  # checkov:skip=CKV_AWS_158: "KMS encryption for logs costs extra"
+  retention_in_days = 365
+  kms_key_id        = data.aws_kms_alias.logs.target_key_arn
 }
 
 resource "aws_apigatewayv2_stage" "prod" {

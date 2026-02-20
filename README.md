@@ -1,162 +1,107 @@
 # AWS Cloud Resume - AaronDouglass.com
 
-A deployment-ready static website and AWS Infrastructure as Code (Terraform) for the AWS Cloud Resume Challenge.
+Production-oriented static resume site with AWS infrastructure managed through Terraform and deployed with GitHub Actions.
 
-## Project Structure
+## Architecture
+
+### Frontend Layer
+- `index.html`, `error.html`, `css/`, `js/`, and `assets/` are deployed to S3.
+- CloudFront serves content globally and forces HTTPS.
+- `js/main.js` calls API Gateway for visitor counts and updates `#visitor-count` in the page.
+
+### API/Counter Layer
+- API Gateway HTTP API exposes `GET /visitor-count`.
+- Lambda (`counter.py`) increments and reads a DynamoDB counter item.
+- API response returns JSON count and CORS headers.
+
+### Storage and Edge Security
+- Website S3 bucket is private via OAC-backed CloudFront access.
+- S3 encryption, versioning, lifecycle, and access logging are enabled.
+- CloudFront has WAF association, managed security response headers, TLS 1.2+ policy, access logs, and configurable geo restriction.
+
+### State Management
+- Terraform state is stored in a dedicated S3 backend bucket.
+- DynamoDB state-lock table enforces Terraform locking.
+- Bootstrap stack (`infrastructure/bootstrap`) creates backend resources.
+
+## CI/CD Pipeline
+
+Pipeline file: `.github/workflows/main.yml`
+
+1. **security_audit**
+   - Runs Checkov against Terraform with `soft_fail: false`.
+2. **validate_terraform**
+   - Validates both bootstrap and main Terraform stacks.
+   - Main stack validation uses `terraform init -backend=false` for PR-safe checks.
+3. **bootstrap_backend** (push to `main` only)
+   - Applies `infrastructure/bootstrap` to ensure state bucket/lock table exist.
+4. **deploy_infra** (push to `main` only)
+   - Applies `infrastructure/` and exports `api_endpoint` + `cloudfront_distribution_id`.
+5. **deploy_frontend** (push to `main` only)
+   - Injects API URL placeholder into JS.
+   - Syncs frontend files to S3.
+   - Invalidates CloudFront.
+
+## Checkov Filtering Status
+
+Fixable bypass filters were removed by implementing controls (WAF, logging, encryption, TLS policy, DLQ, code signing config, KMS-backed settings where practical).
+
+Current remaining skips are intentional architectural/cost tradeoffs and are documented inline in Terraform:
+- S3 replication for static site
+- S3 event notifications for static site bucket
+- CloudFront origin failover pair
+- Custom ACM cert requirement while using default CloudFront cert
+- Lambda VPC requirement (not used to avoid NAT dependency)
+
+## Inputs You Must Provide
+
+Use [PLACEHOLDERS.md](PLACEHOLDERS.md) as the source of truth for all manual values, including:
+- Image placeholders in `index.html`
+- API placeholder behavior in `js/main.js`
+- GitHub secret `AWS_ROLE_TO_ASSUME`
+- GitHub variable `DEPLOY_BUCKET`
+- Terraform values from both `terraform.tfvars.example` files
+
+## Repository Structure
 
 ```
 /
 ├── assets/
-│   ├── images/
-│   │   └── profile.jpg (placeholder - replace with actual image)
-│   └── icons/
 ├── css/
-│   ├── style.css
-│   └── responsive.css
 ├── js/
-│   └── main.js
 ├── infrastructure/
-│   └── main.tf
+│   ├── bootstrap/
+│   ├── api.tf
+│   ├── backend.tf
+│   ├── main.tf
+│   └── outputs.tf
+├── .github/workflows/main.yml
+├── PLACEHOLDERS.md
 ├── index.html
+├── error.html
 └── README.md
 ```
 
-## Features
+## Pre-Deploy Checklist (Strict Order)
 
-### Frontend
-- **Responsive Design**: Two-column desktop layout, single-column mobile
-- **Modern CSS**: Uses CSS Grid, Flexbox, and CSS Variables
-- **Semantic HTML5**: Proper structure with accessibility in mind
-- **Interactive Elements**: Smooth scrolling, fade-in animations
-- **Visitor Counter**: Placeholder API integration for visitor tracking
-- **Telemetry Ready**: Prepared function for future Kinesis Firehose integration
-
-### Infrastructure
-- **S3 Bucket**: Static website hosting with encryption and versioning
-- **CloudFront CDN**: Global content delivery with HTTPS enforcement
-- **Origin Access Control**: Secure S3 access through CloudFront
-- **Terraform**: Infrastructure as Code for reproducible deployments
-
-## Color Palette
-
-- `--bg-primary`: #040404 (Black - Background)
-- `--bg-secondary`: #13505b (Dark Teal - Sidebar/Cards)
-- `--accent-primary`: #119da4 (Dark Cyan - Headers)
-- `--accent-secondary`: #0c7489 (Cerulean - Buttons/Hover)
-- `--text-main`: #d7d9ce (Dust Grey - Text)
-
-## Deployment Instructions
-
-### Prerequisites
-- AWS CLI configured with appropriate permissions
-- Terraform installed
-- Domain name (optional, for custom domain)
-
-### Infrastructure Deployment
-
-1. Navigate to the infrastructure directory:
-   ```bash
-   cd infrastructure
-   ```
-
-2. Initialize Terraform:
-   ```bash
-   terraform init
-   ```
-
-3. Review and customize variables in `main.tf` if needed:
-   - `aws_region`: AWS region (default: us-east-1)
-   - `domain_name`: Your domain name (default: aarondouglass.com)
-
-4. Plan the deployment:
-   ```bash
-   terraform plan
-   ```
-
-5. Apply the configuration:
-   ```bash
-   terraform apply
-   ```
-
-6. Note the outputs:
-   - `cloudfront_domain_name`: Use this for your CNAME record
-   - `s3_bucket_name`: Your S3 bucket name
-
-### Website Deployment
-
-1. Upload website files to the S3 bucket:
-   ```bash
-   aws s3 sync . s3://your-bucket-name --delete
-   ```
-
-2. Configure your domain:
-   - Create a CNAME record pointing to the CloudFront domain
-   - Update the visitor count API URL in `js/main.js`
-
-### Custom Domain Setup
-
-1. After Terraform deployment, update the CloudFront distribution:
-   - Replace `cloudfront_default_certificate = true` with custom SSL certificate
-   - Add alternate domain names (CNAMEs)
-
-2. Update Route53 or your DNS provider:
-   - Create CNAME record pointing to CloudFront domain
-
-## JavaScript Functions
-
-### Visitor Count
-```javascript
-getVisitorCount() // Fetches visitor count from API
-```
-
-### Telemetry (Future)
-```javascript
-collectTelemetry() // Prepares analytics data for Kinesis Firehose
-```
-
-## Customization
-
-### Profile Image
-Replace `assets/images/profile.jpg` with your actual profile image (150x150 pixels recommended).
-
-### Content
-Update the following files:
-- `index.html`: Personal information, experience, education
-- `css/style.css`: Colors, fonts, layout adjustments
-- `js/main.js`: API endpoints, analytics configuration
-
-### Infrastructure
-Modify `infrastructure/main.tf` for:
-- Different AWS regions
-- Additional security settings
-- Custom domain configurations
-- Logging and monitoring
-
-## Security Features
-
-- S3 bucket encryption (AES256)
-- CloudFront Origin Access Control
-- HTTPS enforcement
-- No public S3 access
-- Versioning enabled
-- Security headers ready
-
-## Performance Optimizations
-
-- CloudFront CDN for global delivery
-- Gzip compression enabled
-- Cache optimization for different file types
-- Minified assets (recommended for production)
-
-## Future Enhancements
-
-- API Gateway + Lambda for visitor count
-- Kinesis Firehose for analytics
-- Custom SSL certificate
-- CI/CD pipeline
-- Additional security headers
-- Performance monitoring
-
-## License
-
-This project is part of the AWS Cloud Resume Challenge and is intended for educational and portfolio purposes.
+1. Fill all manual values listed in [PLACEHOLDERS.md](PLACEHOLDERS.md).
+2. Add your image files to:
+   - `assets/images/`
+   - `assets/images/certifications/`
+3. Create `infrastructure/bootstrap/terraform.tfvars` from `infrastructure/bootstrap/terraform.tfvars.example` and set all values.
+4. Create `infrastructure/terraform.tfvars` from `infrastructure/terraform.tfvars.example` and set all values.
+5. For production TLS/domain, set `alternate_domain_names` and `acm_certificate_arn` in `infrastructure/terraform.tfvars`.
+6. Confirm geo policy values (`geo_restriction_type`, `geo_restriction_locations`) match your release scope.
+7. Ensure `infrastructure/backend.tf` bucket/table names match bootstrap tfvars values.
+8. In GitHub repo settings, set secret `AWS_ROLE_TO_ASSUME`.
+9. In GitHub repo settings, set variable `DEPLOY_BUCKET`.
+10. Run bootstrap deployment (one time):
+   - `cd infrastructure/bootstrap`
+   - `terraform init`
+   - `terraform apply`
+11. Deploy main infrastructure:
+   - `cd ../`
+   - `terraform init`
+   - `terraform plan`
+   - `terraform apply`
+12. Push to `main` to trigger full pipeline deploy + CloudFront invalidation.

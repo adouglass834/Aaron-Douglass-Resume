@@ -9,22 +9,29 @@
 </head>
 <body>
     <div class="container">
+        <!-- Sidebar Section -->
         <aside class="sidebar">
-            <header class="profile">
-                <img src="assets/images/profile.jpg" alt="Aaron Douglass" class="profile-image">
+            <!-- Profile Section -->
+            <header class="profile" id="home">
+                <!-- REQUIRED INPUT: Replace %%PROFILE_IMAGE%% with your profile image filename in assets/images/ -->
+                <img src="assets/images/%%PROFILE_IMAGE%%" alt="Aaron Douglass" class="profile-image">
                 <h1>Aaron Douglass</h1>
                 <h2>Information Security Analyst</h2>
                 <p>Cloud Security & DevSecOps</p>
             </header>
-            
-            <section class="contact">
+
+            <!-- Contact Section -->
+            <section class="contact" id="contact">
                 <h3>Contact</h3>
+                <p>Florida, USA (Remote)</p>
+                <p>Connect via LinkedIn/Credly</p>
                 <div class="visitor-counter">
                     <p>Visitor Count: <span id="visitor-count">Loading...</span></p>
                 </div>
             </section>
-            
-            <section class="education">
+
+            <!-- Education Section -->
+            <section class="education" id="education">
                 <h3>Education</h3>
                 <div class="education-item">
                     <h4>B.A.S. Data Science</h4>
@@ -36,27 +43,31 @@
                     <p>St. Petersburg College</p>
                 </div>
             </section>
-            
+
+            <!-- Quick Links Section -->
             <section class="certifications">
-                <h3>Certifications</h3>
+                <h3>Quick Links</h3>
                 <ul>
-                    <li>AWS Certified Cloud Practitioner</li>
-                    <li>GIAC Certified Incident Handler (GCIH)</li>
-                    <li>GIAC Security Essentials Certification (GSEC)</li>
-                    <li>CompTIA Security+</li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#experience">Experience</a></li>
+                    <li><a href="#certificates">Certifications</a></li>
+                    <li><a href="#skills">Skills</a></li>
                 </ul>
             </section>
         </aside>
-        
+
+        <!-- Main Content Section -->
         <main class="content">
-            <section class="summary">
+            <!-- Professional Summary Section -->
+            <section class="summary" id="about">
                 <h2>Professional Summary</h2>
                 <p>Results-oriented Information Security Professional with over 3 years of experience securing DoD and enterprise environments. Expert in NIST RMF compliance, vulnerability management, and cloud security. Recently architected a serverless AWS environment using Terraform and DevSecOps best practices.</p>
             </section>
-            
-            <section class="experience">
+
+            <!-- Experience Section -->
+            <section class="experience" id="experience">
                 <h2>Professional Experience</h2>
-                
+
                 <article class="job">
                     <header>
                         <h3>Booz Allen Hamilton</h3>
@@ -68,7 +79,7 @@
                         <li>Reduced critical risk backlog by 40% via Python automation</li>
                     </ul>
                 </article>
-                
+
                 <article class="job">
                     <header>
                         <h3>Anthony Timbers LLC</h3>
@@ -79,19 +90,49 @@
                         <li>Authored System Security Plans (SSPs) aligned with NIST SP 800-171</li>
                     </ul>
                 </article>
-                
-                <article class="job">
-                    <header>
-                        <h3>Polk County Tax Collector</h3>
-                        <p class="date">December 2021 – June 2022</p>
-                    </header>
-                    <ul>
-                        <li>Managed IAM and Active Directory for 300+ users</li>
-                    </ul>
+            </section>
+
+            <!-- Certifications Section -->
+            <section class="projects" id="certificates">
+                <h2>Certifications</h2>
+                <div class="certificates-grid">
+                    <!-- GCIH Certification Div -->
+                    <div class="certificate-card">
+                        <h3>GCIH</h3>
+                        <p>GIAC Certified Incident Handler</p>
+                        <!-- REQUIRED INPUT: Replace %%GCIH_CERT_IMAGE%% with your certification image filename -->
+                        <img src="assets/images/certifications/%%GCIH_CERT_IMAGE%%" alt="GCIH Certification Badge" class="cert-image">
+                    </div>
+
+                    <!-- GSEC Certification Div -->
+                    <div class="certificate-card">
+                        <h3>GSEC</h3>
+                        <p>GIAC Security Essentials Certification</p>
+                        <!-- REQUIRED INPUT: Replace %%GSEC_CERT_IMAGE%% with your certification image filename -->
+                        <img src="assets/images/certifications/%%GSEC_CERT_IMAGE%%" alt="GSEC Certification Badge" class="cert-image">
+                    </div>
+
+                    <!-- AWS Certification Div -->
+                    <div class="certificate-card">
+                        <h3>AWS Certified Cloud Practitioner</h3>
+                        <p>AWS Foundational Cloud Certification</p>
+                        <!-- REQUIRED INPUT: Replace %%AWS_CERT_IMAGE%% with your certification image filename -->
+                        <img src="assets/images/certifications/%%AWS_CERT_IMAGE%%" alt="AWS Certified Cloud Practitioner Badge" class="cert-image">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Skills Section -->
+            <section class="projects" id="skills">
+                <h2>Skills</h2>
+                <article class="project">
+                    <h3>Core Competencies</h3>
+                    <p>NIST RMF compliance, vulnerability management, AWS cloud security, Python automation, Terraform, DevSecOps pipelines, penetration testing, and IAM governance.</p>
                 </article>
             </section>
-            
-            <section class="projects">
+
+            <!-- Projects Section -->
+            <section class="projects" id="projects">
                 <h2>Projects</h2>
                 <article class="project">
                     <h3>The Cloud Resume Challenge</h3>
@@ -100,7 +141,13 @@
             </section>
         </main>
     </div>
-    
+
+    <!-- Footer Section -->
+    <footer class="content" style="padding-top: 0;">
+        <p>Created By Aaron Douglass | 2026 All rights reserved.</p>
+    </footer>
+
+    <!-- JavaScript Section -->
     <script src="js/main.js"></script>
 </body>
 </html>

@@ -35,3 +35,6 @@ Thumbs.db
 # Python
 __pycache__/
 *.py[cod]
+
+# Terraform generated package artifacts
+infrastructure/counter.zip

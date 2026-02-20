@@ -31,12 +31,38 @@ variable "environment" {
   default     = "production"
 }
 
+variable "geo_restriction_type" {
+  description = "CloudFront geo restriction type (none, whitelist, blacklist)"
+  type        = string
+  default     = "whitelist"
+
+  validation {
+    condition     = contains(["none", "whitelist", "blacklist"], var.geo_restriction_type)
+    error_message = "geo_restriction_type must be one of: none, whitelist, blacklist."
+  }
+}
+
+variable "geo_restriction_locations" {
+  description = "Country codes used when geo_restriction_type is whitelist or blacklist"
+  type        = list(string)
+  default     = ["US"]
+}
+
+variable "alternate_domain_names" {
+  description = "Optional alternate domain names (CNAMEs) for CloudFront"
+  type        = list(string)
+  default     = []
+}
+
+variable "acm_certificate_arn" {
+  description = "Optional ACM certificate ARN in us-east-1 for CloudFront custom domain"
+  type        = string
+  default     = ""
+}
+
 # S3 Bucket for static website hosting
 # checkov:skip=CKV_AWS_144: "Replication not required for static site"
-# checkov:skip=CKV_AWS_18: "Logging not required for resume site"
-# checkov:skip=CKV_AWS_145: "Public website does not require KMS encryption"
 # checkov:skip=CKV2_AWS_62: "Notifications not needed for static site"
-# checkov:skip=CKV2_AWS_6: "Public access required for website hosting"
 resource "aws_s3_bucket" "website_bucket" {
   bucket = var.domain_name
   
@@ -45,6 +71,92 @@ resource "aws_s3_bucket" "website_bucket" {
     Environment = var.environment
     Project     = "cloud-resume-challenge"
   }
+}
+
+resource "aws_s3_bucket" "website_logs_bucket" {
+  bucket = "${var.domain_name}-logs"
+
+  tags = {
+    Name        = "${var.domain_name}-logs"
+    Environment = var.environment
+    Project     = "cloud-resume-challenge"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "website_logs_access" {
+  bucket = aws_s3_bucket.website_logs_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "website_logs_encryption" {
+  bucket = aws_s3_bucket.website_logs_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "website_logs_bucket_policy" {
+  bucket = aws_s3_bucket.website_logs_bucket.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowS3ServerAccessLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logging.s3.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.website_logs_bucket.arn}/s3-access-logs/*"
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" = aws_s3_bucket.website_bucket.arn
+          }
+        }
+      },
+      {
+        Sid    = "AllowCloudFrontLogs"
+        Effect = "Allow"
+        Principal = {
+          Service = "delivery.logs.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.website_logs_bucket.arn}/cloudfront/*"
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_public_access_block" "website_access" {
+  bucket = aws_s3_bucket.website_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "website_encryption" {
+  bucket = aws_s3_bucket.website_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_logging" "website_access_logs" {
+  bucket        = aws_s3_bucket.website_bucket.id
+  target_bucket = aws_s3_bucket.website_logs_bucket.id
+  target_prefix = "s3-access-logs/"
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "website_lifecycle" {
@@ -80,20 +192,65 @@ resource "aws_s3_bucket_versioning" "versioning" {
   }
 }
 
+resource "aws_cloudfront_origin_access_control" "website_oac" {
+  name                              = "${var.domain_name}-oac"
+  description                       = "OAC for ${var.domain_name} website bucket"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 # CloudFront Distribution
-# checkov:skip=CKV_AWS_68: "WAF is too expensive for personal project"
 # checkov:skip=CKV_AWS_310: "Failover not required for simple resume"
-# checkov:skip=CKV2_AWS_32: "Standard headers sufficient"
-# checkov:skip=CKV2_AWS_47: "WAF not enabled"
 # checkov:skip=CKV2_AWS_42: "Using default CloudFront cert is acceptable for dev"
-# checkov:skip=CKV_AWS_86: "Access logging not required for resume site"
-# checkov:skip=CKV_AWS_174: "Default CloudFront cert used, cannot enforce TLS 1.2"
-# checkov:skip=CKV_AWS_374: "Geo restriction not required"
-# checkov:skip=CKV2_AWS_46: "OAI not strictly required for public website bucket"
+data "aws_cloudfront_response_headers_policy" "managed_security_headers" {
+  name = "Managed-SecurityHeadersPolicy"
+}
+
+resource "aws_wafv2_web_acl" "cloudfront_waf" {
+  name  = "${var.domain_name}-waf"
+  scope = "CLOUDFRONT"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "common-rule-set"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${replace(var.domain_name, ".", "-")}-waf"
+    sampled_requests_enabled   = true
+  }
+}
+
 resource "aws_cloudfront_distribution" "cdn" {
+  aliases = var.alternate_domain_names
+
   origin {
     domain_name = aws_s3_bucket.website_bucket.bucket_regional_domain_name
     origin_id   = "S3-${aws_s3_bucket.website_bucket.bucket}"
+    origin_access_control_id = aws_cloudfront_origin_access_control.website_oac.id
   }
 
   enabled             = true
@@ -113,20 +270,33 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
 
     viewer_protocol_policy = "redirect-to-https"
+    response_headers_policy_id = data.aws_cloudfront_response_headers_policy.managed_security_headers.id
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
   }
 
+  logging_config {
+    bucket          = aws_s3_bucket.website_logs_bucket.bucket_domain_name
+    include_cookies = false
+    prefix          = "cloudfront/"
+  }
+
   restrictions {
     geo_restriction {
-      restriction_type = "none"
+      restriction_type = var.geo_restriction_type
+      locations        = var.geo_restriction_type == "none" ? [] : var.geo_restriction_locations
     }
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = var.acm_certificate_arn == ""
+    acm_certificate_arn            = var.acm_certificate_arn == "" ? null : var.acm_certificate_arn
+    ssl_support_method             = var.acm_certificate_arn == "" ? null : "sni-only"
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
+
+  web_acl_id = aws_wafv2_web_acl.cloudfront_waf.arn
 }
 
 # S3 Bucket policy to allow CloudFront access
@@ -167,4 +337,9 @@ output "s3_bucket_name" {
 output "s3_bucket_arn" {
   description = "S3 bucket ARN"
   value       = aws_s3_bucket.website_bucket.arn
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID"
+  value       = aws_cloudfront_distribution.cdn.id
 }

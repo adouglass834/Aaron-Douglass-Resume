@@ -1,0 +1,4 @@
+# REQUIRED INPUTS - copy this file to terraform.tfvars and set your values
+aws_region        = "us-east-1"
+state_bucket_name = "your-terraform-state-bucket-name"
+lock_table_name   = "your-terraform-lock-table-name"

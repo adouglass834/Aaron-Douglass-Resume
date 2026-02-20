@@ -2,7 +2,7 @@
 async function getVisitorCount() {
     try {
         // Placeholder API URL - replace with actual API Gateway endpoint
-        const apiUrl = const apiUrl = '%%API_URL_PLACEHOLDER%%';
+        const apiUrl = '%%API_URL_PLACEHOLDER%%';
         
         const response = await fetch(apiUrl, {
             method: 'GET',

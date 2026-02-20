@@ -117,6 +117,15 @@ body {
     list-style: none;
 }
 
+.certifications a {
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+.certifications a:hover {
+    color: var(--accent-primary);
+}
+
 .certifications li {
     padding: 0.5rem 0;
     border-bottom: 1px solid rgba(17, 157, 164, 0.2);
@@ -212,6 +221,38 @@ body {
 .project p {
     opacity: 0.9;
     line-height: 1.6;
+}
+
+.certificates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.certificate-card {
+    padding: 1.25rem;
+    background-color: rgba(19, 80, 91, 0.3);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-secondary);
+}
+
+.certificate-card h3 {
+    color: var(--accent-primary);
+    margin-bottom: 0.5rem;
+}
+
+.certificate-card p {
+    margin-bottom: 0.75rem;
+    opacity: 0.9;
+}
+
+.cert-image {
+    width: 100%;
+    max-width: 160px;
+    height: auto;
+    display: block;
+    border-radius: 6px;
+    border: 1px solid rgba(17, 157, 164, 0.4);
 }
 
 @media (max-width: 768px) {

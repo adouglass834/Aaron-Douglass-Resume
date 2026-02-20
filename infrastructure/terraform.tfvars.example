@@ -1,0 +1,9 @@
+# REQUIRED INPUTS - copy this file to terraform.tfvars and set your values
+aws_region   = "us-east-1"
+domain_name  = "your-domain-or-bucket-name.example.com"
+environment  = "production"
+allowed_cors_origin = "https://your-domain.example.com"
+geo_restriction_type      = "whitelist"
+geo_restriction_locations = ["US"]
+alternate_domain_names    = ["your-domain.example.com"]
+acm_certificate_arn       = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
