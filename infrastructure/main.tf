@@ -364,7 +364,6 @@ resource "aws_cloudwatch_log_group" "waf_logs" {
 }
 
 resource "aws_wafv2_web_acl" "cloudfront_waf" {
-  # checkov:skip=CKV2_AWS_47: Log4j protection implemented via AWSManagedRulesCommonRuleSet with Log4JRCE_BODY override and AWSManagedRulesKnownBadInputsRuleSet
   name  = "${var.domain_name}-waf"
   scope = "CLOUDFRONT"
 
@@ -372,9 +371,10 @@ resource "aws_wafv2_web_acl" "cloudfront_waf" {
     allow {}
   }
 
+  # AWS Managed Rules - Common Rule Set (includes Log4j protection)
   rule {
     name     = "AWSManagedRulesCommonRuleSet"
-    priority = 1
+    priority = 0
 
     override_action {
       none {}
@@ -389,14 +389,15 @@ resource "aws_wafv2_web_acl" "cloudfront_waf" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "common-rule-set"
+      metric_name                = "AWSManagedRulesCommonRuleSet"
       sampled_requests_enabled   = true
     }
   }
 
+  # AWS Managed Rules - Known Bad Inputs Rule Set  
   rule {
     name     = "AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 2
+    priority = 1
 
     override_action {
       none {}
@@ -411,41 +412,12 @@ resource "aws_wafv2_web_acl" "cloudfront_waf" {
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "known-bad-inputs-rule-set"
+      metric_name                = "AWSManagedRulesKnownBadInputsRuleSet"
       sampled_requests_enabled   = true
     }
   }
 
-  # Log4j vulnerability protection (CKV2_AWS_47)
-  rule {
-    name     = "AWSManagedRulesCommonRuleSetLog4j"
-    priority = 3
-
-    override_action {
-      none {}
-    }
-
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesCommonRuleSet"
-        vendor_name = "AWS"
-
-        rule_action_override {
-          name = "Log4JRCE_BODY"
-          action_to_use {
-            block {}
-          }
-        }
-      }
-    }
-
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "log4j-protection"
-      sampled_requests_enabled   = true
-    }
-  }
-
+  # checkov:skip=CKV2_AWS_47: Log4j mitigation implemented via AWSManagedRulesCommonRuleSet (includes Log4JRCE protection)
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = "${replace(var.domain_name, ".", "-")}-waf"

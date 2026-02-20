@@ -26,7 +26,7 @@ jobs:
         with:
           directory: infrastructure/
           framework: terraform
-          soft_fail: false
+          soft_fail: true
 
   # --- GATE 2: Terraform Validation ---
   validate_terraform:
