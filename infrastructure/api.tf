@@ -245,6 +245,7 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
 }
 
 resource "aws_apigatewayv2_route" "default_route" {
+  # checkov:skip=CKV_AWS_309: Authorization type explicitly set to NONE for public visitor counter endpoint
   api_id             = aws_apigatewayv2_api.visitor_api.id
   route_key          = "GET /visitor-count"
   target             = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"

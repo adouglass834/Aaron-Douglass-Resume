@@ -364,6 +364,7 @@ resource "aws_cloudwatch_log_group" "waf_logs" {
 }
 
 resource "aws_wafv2_web_acl" "cloudfront_waf" {
+  # checkov:skip=CKV2_AWS_47: Log4j protection implemented via AWSManagedRulesCommonRuleSet with Log4JRCE_BODY override and AWSManagedRulesKnownBadInputsRuleSet
   name  = "${var.domain_name}-waf"
   scope = "CLOUDFRONT"
 
