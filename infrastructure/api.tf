@@ -245,11 +245,9 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
 }
 
 resource "aws_apigatewayv2_route" "default_route" {
-  api_id    = aws_apigatewayv2_api.visitor_api.id
-  route_key = "GET /visitor-count"
-  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
-  
-  # FIX: Explicitly set authorization to NONE for public API (CKV_AWS_309)
+  api_id             = aws_apigatewayv2_api.visitor_api.id
+  route_key          = "GET /visitor-count"
+  target             = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
   authorization_type = "NONE"
 }
 

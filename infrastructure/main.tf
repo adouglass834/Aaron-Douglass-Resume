@@ -415,6 +415,36 @@ resource "aws_wafv2_web_acl" "cloudfront_waf" {
     }
   }
 
+  # Log4j vulnerability protection (CKV2_AWS_47)
+  rule {
+    name     = "AWSManagedRulesCommonRuleSetLog4j"
+    priority = 3
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+
+        rule_action_override {
+          name = "Log4JRCE_BODY"
+          action_to_use {
+            block {}
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "log4j-protection"
+      sampled_requests_enabled   = true
+    }
+  }
+
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = "${replace(var.domain_name, ".", "-")}-waf"
