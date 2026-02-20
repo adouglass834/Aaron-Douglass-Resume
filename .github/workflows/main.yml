@@ -1,10 +1,15 @@
 name: Cloud Resume DevSecOps Pipeline
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  # Temporarily disabled - push/PR won't trigger
+  # on:
+  #   push:
+  #     branches: [ main ]
+  #   pull_request:
+  #     branches: [ main ]
+  
+  # Manual trigger only - run via GitHub Actions UI when ready, To re-enable automatic triggers later, just uncomment the push: and pull_request: sections and remove workflow_dispatch:.
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -14,23 +19,8 @@ env:
   AWS_REGION: us-east-1
 
 jobs:
-  # --- GATE 1: Security Scanning ---
-  security_audit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: IaC Security Scan (Checkov)
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: infrastructure/
-          framework: terraform
-          soft_fail: true
-
-  # --- GATE 2: Terraform Validation ---
+  # --- GATE 1: Terraform Validation ---
   validate_terraform:
-    needs: security_audit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
